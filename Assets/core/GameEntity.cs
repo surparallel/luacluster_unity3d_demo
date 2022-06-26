@@ -25,8 +25,8 @@ public class GameEntity : MonoBehaviour
 
 	private InputControllerData inputControllerData;
 
-	private int mov;
-	private float y;
+	private float mov;
+	private long zStamp;
 
 	uint count;
 	uint status;
@@ -40,6 +40,7 @@ public class GameEntity : MonoBehaviour
 			status = 0;
 			mov = 0;
 			beat = 0;
+			zStamp = 0;
 			inputControllerData = gameObject.GetComponent<InputControllerData>();
 		}
 	}
@@ -140,6 +141,12 @@ public class GameEntity : MonoBehaviour
 		status = 1;
 	}
 
+	private long GetTime()
+	{
+		//精确到毫秒
+		return new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
+	}
+
 	void Update () 
 	{
         if (!isPlayer)
@@ -165,28 +172,46 @@ public class GameEntity : MonoBehaviour
 
 			} else if(status == 1)
             {
-				if (inputControllerData.mov != this.mov)
+
+				if (inputControllerData.mov != 0 && inputControllerData.mov != this.mov)
 				{
-					if (inputControllerData.mov != 0)
+					if (inputControllerData.z != 0)
 					{
-						//Dbg.ERROR_MSG(string.Format("{0} {1}", inputControllerData.mov, inputControllerData.y));
-						//提交到服务器移动状态发生改变
-						MoveSend(10, this.y);
+						long ctiem = GetTime();
+						if(ctiem - zStamp > 300)
+                        {
+							MoveSend(10);
+							zStamp = ctiem;
+						}
+					}else
+                    {
+						MoveSend(10);
+					}
+                }
+                else
+                {
+					if (inputControllerData.z != 0)
+					{
+						long ctiem = GetTime();
+						if (ctiem - zStamp > 300)
+						{
+							MoveSend(10);
+							zStamp = ctiem;
+						}
 					}
 					else
 					{
 						//停止移动
-						MoveSend(0, 0);
+						MoveSend(0);
 					}
 				}
-
+				
 				this.mov = inputControllerData.mov;
-				this.y = inputControllerData.y;
             }
 		}
 	}
 
-	public void MoveSend(float velocity, float y)
+	public void MoveSend(float velocity)
 	{
 		//this.transform.position;
 		Vector3 euler = this.transform.rotation.eulerAngles;
@@ -200,7 +225,7 @@ public class GameEntity : MonoBehaviour
 		pos = MsgPackSerializer.SerializeObject(this.transform.position.y, mybuf, pos);
 		pos = MsgPackSerializer.SerializeObject(this.transform.position.z, mybuf, pos);
 		pos = MsgPackSerializer.SerializeObject(euler.x, mybuf, pos);
-		pos = MsgPackSerializer.SerializeObject(euler.y + y, mybuf, pos);
+		pos = MsgPackSerializer.SerializeObject(euler.y, mybuf, pos);
 		pos = MsgPackSerializer.SerializeObject(euler.z, mybuf, pos);
 		pos = MsgPackSerializer.SerializeObject(velocity, mybuf, pos);
 		pos = MsgPackSerializer.SerializeObject(Tool.TimeStamp(), mybuf, pos);
