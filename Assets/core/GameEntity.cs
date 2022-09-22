@@ -26,6 +26,7 @@ public class GameEntity : MonoBehaviour
 	private InputControllerData inputControllerData;
 
 	private float mov;
+	private float z;
 	private long zStamp;
 
 	uint count;
@@ -201,13 +202,18 @@ public class GameEntity : MonoBehaviour
 					}
 					else
 					{
-						//停止移动
-						MoveSend(0);
+						if((inputControllerData.mov != 0 && inputControllerData.mov != this.mov) || (inputControllerData.z != 0 && inputControllerData.z != this.z))
+                        {
+							//停止移动
+							MoveSend(0);
+                        }
+
 					}
 				}
 				
 				this.mov = inputControllerData.mov;
-            }
+				this.z = inputControllerData.z;
+			}
 		}
 	}
 
